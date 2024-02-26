@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { PrismaClient } from '@prisma/client/edge';
 import { withAccelerate } from '@prisma/extension-accelerate';
+import { createPostInput, updatePostInput } from "@dasti-dev/common"
 
 export const blogRouter = new Hono<{
     Bindings: {
@@ -17,8 +18,17 @@ blogRouter.post('/post', async (c) => {
     const prisma = new PrismaClient({
         datasourceUrl: c.env?.DATABASE_URL,
     }).$extends(withAccelerate());
+
+
     try {
         const body = await c.req.json();
+
+        const { success } = createPostInput.safeParse(body); 
+
+        if(!success) {
+            c.status(400);
+            return c.json({ error: "Invalid Input"});
+        }
         const post = await prisma.post.create({
             data: {
                 title: body.title,
@@ -39,8 +49,17 @@ blogRouter.put('/update', async (c) => {
     const prisma = new PrismaClient({
         datasourceUrl: c.env?.DATABASE_URL,
     }).$extends(withAccelerate());
+
     try {
         const body = await c.req.json();
+
+        const { success } = createPostInput.safeParse(body); 
+        
+        if(!success) {
+            c.status(400);
+            return c.json({ error: "Invalid Input"});
+        }
+
         await prisma.post.update({
             where: {
                 id: body.id,
@@ -65,6 +84,7 @@ blogRouter.get('get/:id', async (c) => {
     const prisma = new PrismaClient({
         datasourceUrl: c.env?.DATABASE_URL,
     }).$extends(withAccelerate());
+    
     try {
         const post = await prisma.post.findUnique({
             where: {
